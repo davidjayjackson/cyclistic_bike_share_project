@@ -1,0 +1,28 @@
+==> Source Management:
+	GIT & GitHub (install,free account
+	Kaggle (free account)
+==> Data Source:
+	Kaggle
+Spreadsheets: 
+	Excel, 
+	
+Databases: 
+	Duckdb, 
+	SQL Server
+Languages: 
+	R, 
+	Python (miniconda)
+	and SQL
+
+Dashboard:
+	Power BI
+	Excel
+	Quatro
+AI: 
+	ChatGPT4o,
+	ChatGPT3.5
+	(Gemini, Bard)
+         CHAT4ALL
+Google (Bonus):
+	Google Sheets
+	Big Query
