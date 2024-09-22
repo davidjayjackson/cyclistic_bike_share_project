@@ -1,0 +1,144 @@
+---
+title: "Cyclistic Bikeshare Data Wrangling"
+format: dashboard
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+library(janitor)
+library(summarytools)
+library(scales)
+library(lubridate)
+library(e1071)
+```
+```{r}
+# Define a function to calculate descriptive statistics including IQR, skewness, kurtosis, and row count
+calculate_descriptive_stats <- function(data, column) {
+  data %>%
+    summarise(
+      Row_Count = n(),
+      Mean = mean({{ column }}, na.rm = TRUE),
+      Median = median({{ column }}, na.rm = TRUE),
+      Std_Dev = sd({{ column }}, na.rm = TRUE),
+      Variance = var({{ column }}, na.rm = TRUE),
+      Min = min({{ column }}, na.rm = TRUE),
+      Max = max({{ column }}, na.rm = TRUE),
+      Q1 = quantile({{ column }}, 0.25, na.rm = TRUE),
+      Q3 = quantile({{ column }}, 0.75, na.rm = TRUE),
+      IQR = IQR({{ column }}, na.rm = TRUE),
+      Skewness = skewness({{ column }}, na.rm = TRUE),
+      Kurtosis = kurtosis({{ column }}, na.rm = TRUE)
+    )
+}
+```
+```{r}
+add_outlier_column <- function(df, column) {
+  df %>%
+    mutate(Q1 = quantile({{column}}, 0.25),  # 1st quartile
+           Q3 = quantile({{column}}, 0.75),  # 3rd quartile
+           IQR = Q3 - Q1,  # Interquartile range
+           lower_bound = Q1 - 1.5 * IQR,  # Lower bound
+           upper_bound = Q3 + 1.5 * IQR,  # Upper bound,
+           is_outlier = ifelse({{column}} < lower_bound | {{column}} > upper_bound, TRUE, FALSE)) %>%
+    select(-Q1, -Q3, -IQR, -lower_bound, -upper_bound)  # Remove the intermediate columns
+}
+```
+
+<h6> Create Data Frame From 12 CSV Files </h6>
+
+```{r}
+
+# Specify the directory containing the CSV files
+file_list <- list.files(path = "./Data", pattern = "*.csv", full.names = TRUE)
+
+# Read and combine all CSV files into a single data frame
+combined_data <- file_list %>%
+  map_df(read_csv)
+
+# View combined data frame
+dim(combined_data)
+
+```
+
+#### Remove rows where start_station and end_station are missng.
+
+```{r}
+# Assuming your data frame is called `df`
+station_filter <- combined_data %>%
+  filter(!is.na(start_station_name) | 
+         !is.na(start_station_id) | 
+         !is.na(end_station_name) | 
+         !is.na(end_station_id))
+
+```
+```{r}
+dim(station_filter)
+```
+
+<h6> Extract Start and End Dates </h6>
+
+```{r}
+station_filter$started_at <- ymd_hms(station_filter$started_at)
+station_filter$ended_dat <- ymd_hms(station_filter$ended_at)
+```
+```{r}
+station_filter <- station_filter |> filter(!is.na(started_at) |
+         !is.na(ended_at))
+```
+`
+
+```{r}
+station_filter$start_date <- as.Date(station_filter$started_at)
+```
+```{r}
+station_filter$end_date <- as.Date(station_filter$ended_at)
+```
+
+<h1> Only Keep Rides Where Start and End Date are the Same</h1>
+
+```{r}
+day_trips <- station_filter |> filter(start_date == end_date)
+```
+
+<h6> Analyze Ride Distributions </h6>
+
+```{r}
+day_trips |> count(start_date) |> ggplot(aes(x=n)) + geom_histogram() +
+  labs(title="Histogram of Ride Counts",x="Number Of Rides")
+```
+
+```{r}
+day_trips |> count(start_date) |> ggplot(aes(x=n)) + geom_boxplot() +
+  labs(title="Boxplot of Ride Counts",x="Number Of Rides")
+```
+```{r}
+day_trips |> count(start_date) |> ggplot(aes(x=start_date,y=n)) +
+  geom_line() + labs(title="Rides By Date")
+```
+
+<h6> Calculate Trip Duration in Minutes </h6>
+
+```{r}
+day_trips$trip_duration <- as.numeric(difftime(day_trips$ended_at, day_trips$started_at, units = "mins"))
+
+removed_zeros <- day_trips |> filter(trip_duration >0)
+```
+```{r}
+calculate_descriptive_stats(removed_zeros,trip_duration)
+```
+```{r}
+removed_zeros <- add_outlier_column(removed_zeros,trip_duration)
+```
+```{r}
+remove_outlier <- removed_zeros |>filter(is_outlier=="FALSE") 
+# remove_outlier |> calculate_descriptive_stats(remove_outlier)
+```
+```{r}
+ggplot(remove_outlier) + geom_histogram(aes(x=trip_duration)) +
+  labs(title="Histogram of Trip Durations")
+
+ggplot(remove_outlier) + geom_boxplot(aes(x=trip_duration)) +
+  labs(title="Boxplot of Trip Durations")
+
+```
