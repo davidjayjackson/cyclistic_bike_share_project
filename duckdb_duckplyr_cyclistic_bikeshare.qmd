@@ -1,3 +1,124 @@
+<<<<<<< HEAD
+---
+title: "Duckdb/Duckplyr: Cyclistic Data Wrangling"
+format: html
+editor: visual
+---
+
+```{r}
+library(tidyverse)
+library(lubridate)
+library(janitor)
+library(duckdb)
+library(duckplyr)
+library(scales)
+library(DBI)
+```
+
+# Load Data
+
+```{r}
+rm(list=ls())
+# Connect to a DuckDB file or create in-memory database
+conn <- dbConnect(duckdb::duckdb(), "./bikeshare.duckdb")
+dbListTables(conn)
+```
+
+```{r}
+rides <- rides |> 
+  mutate(start_station_name = if_else(is.na(start_station_name), 
+                                      "ABC Bike Share", 
+                                      start_station_name))
+
+```
+
+```{r}
+rides <- rides |>
+  mutate(
+    yr = year(start_date),
+    month_num = month(start_date),
+    month_abbr = month(start_date, label = TRUE),
+    qtr_num = quarter(start_date),
+    qtr_abbr = quarter(start_date, with_year = TRUE, fiscal_start = 1),
+    dow_num = wday(start_date),
+    dow_abbr = wday(start_date, label = TRUE),
+    start_time = hour(started_at)
+  )
+```
+```{r}
+dbWriteTable(conn,"rides",rides,append=FALSE,overwrite=TRUE,row.names=TRUE)
+```
+```{r}
+bikerides <- tbl(conn, "rides") %>%  collect()
+```
+
+# Analysis of Ride Times
+
+```{r}
+bikerides |> ggplot(aes(x=trip_duration)) + geom_histogram()
+bikerides |> ggplot(aes(x=trip_duration)) + geom_boxplot()
+```
+```{r}
+bikerides |> group_by(start_date,month_abbr) |> summarise(avg_time = mean(trip_duration)) |>
+  ggplot(aes(x=start_date,y=avg_time,colour =month_abbr)) + geom_line() +
+  labs(title="Average Ride Time By Date",x="Ride Date",y="Ride Times in Minutes")
+```
+
+```{r}
+rides |> count(rideable_type) |> ggplot(aes(x=reorder(rideable_type,n),y=n)) + geom_col() + scale_y_continuous(labels=comma)
+```
+
+```{r}
+rides |> count(member_casual) |> ggplot(aes(x=reorder(member_casual,n),y=n)) + geom_col() + scale_y_continuous(labels=comma)
+```
+
+# Top 10 Most Popular Start Stations
+
+```{r}
+rides <- rides |> 
+  mutate(start_station_name = if_else(is.na(start_station_name), 
+                                      "ABC Bike Share", 
+                                      start_station_name))
+
+```
+```{r}
+rides |> count(start_station_name, sort=TRUE) |> top_n(10) |>
+  ggplot(aes(x=start_station_name,y=n)) + geom_col() + coord_flip() +
+scale_y_continuous(labels=comma)
+```
+
+```{r}
+rides |> filter(!start_station_name =="ABC Bike Share") |>
+  count(start_station_name, sort=TRUE) |> top_n(10) |>
+  ggplot(aes(x=reorder(start_station_name,n),y=n)) + geom_col() + coord_flip() +
+scale_y_continuous(labels=comma)
+```
+
+# Build Calendar: Monday, Day of Week, Quarter and Year
+
+
+```{r}
+rides |> count(start_date) |> ggplot(aes(x=start_date,y=n)) + geom_line() +
+  labs(title="Ride Counts by Date") 
+  
+```
+```{r}
+rides |> count(start_time) |> ggplot(aes(x=start_time,n)) + geom_col() +
+  labs(title="Ride Counts by Start Time")
+```
+```{r}
+rides |> count(dow_abbr) |> ggplot(aes(x=dow_abbr,n)) + geom_col() +
+  labs(title="Ride Counts by Day of Week")
+```
+```{r}
+rides |> count(month_abbr) |> ggplot(aes(x=month_abbr,n)) + geom_col() +
+  labs(title="Ride Counts by Month")
+```
+```{r}
+# rides$yr <- as.factor(rides$yr)
+rides |> count(qtr_abbr) |> ggplot(aes(x=qtr_abbr,n)) + geom_col() +
+  labs(title="Ride Counts by Quarter") 
+=======
 ---
 title: "Duckdb/Duckplyr: Cyclistic Data Wrangling"
 format: html
@@ -45,4 +166,5 @@ rides |> filter(!start_station_name =="ABC Bike Share") |>
   count(start_station_name, sort=TRUE) |> top_n(10) |>
   ggplot(aes(x=reorder(start_station_name,n),y=n)) + geom_col() + coord_flip() +
 scale_y_continuous(labels=comma)
+>>>>>>> 4b36cef16f4bb406c563dd657aefed5735eb0c4a
 ```
