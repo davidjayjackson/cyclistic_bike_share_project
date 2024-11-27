@@ -1,0 +1,27 @@
+---
+title: "Importing CSV Files Using Python + IBIS"
+date: "2024-11-22"
+format: html
+jupyter: python3
+---
+# Load Usual Suspects
+
+```{python}
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import  ibis
+```
+## Grab A Directory of CSV Files
+
+```{python}
+# Specify the path to your CSV file
+csv_file_path = 'bike_rides'
+# Connect to the CSV backend
+csv_client = ibis.connect(f'csv://{csv_file_path}')
+```
+```{python}
+# The first time you run this you will be prompts to  install kernel 
+# View the table schema (optional)
+print(csv_client.schema())
+```
